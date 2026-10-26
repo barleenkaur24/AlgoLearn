@@ -2,6 +2,7 @@ import gradio as gr
 import sys
 from pathlib import Path
 import time
+import os
 
 PROJECT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_DIR / "src"))
@@ -426,4 +427,8 @@ with gr.Blocks(
     )
 
 if __name__ == "__main__":
-    demo.launch()
+    port = int(os.environ.get("PORT", 7860))
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=port,
+    )
