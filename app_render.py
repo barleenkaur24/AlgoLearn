@@ -129,34 +129,17 @@ STUDENT QUESTION:
 
     client = genai.Client(
         api_key=api_key,
-        http_options=types.HttpOptions(timeout=15000),
+http_options=types.HttpOptions(timeout=60000),
     )
 
-    response = None
-
-    for attempt in range(2):
-        try:
-            response = client.models.generate_content(
-                model=MODEL_NAME,
-                contents=prompt,
-                config={
-                    "temperature": 0.2,
-                    "max_output_tokens": 1000,
-                },
-            )
-            break
-
-        except Exception as error:
-            error_text = str(error)
-
-            if attempt == 0 and any(
-                code in error_text
-                for code in ("503", "UNAVAILABLE", "429")
-            ):
-                time.sleep(1)
-                continue
-
-            raise
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=prompt,
+        config={
+            "temperature": 0.2,
+            "max_output_tokens": 500,
+        },
+    )
 
     generated_text = response.text
 
