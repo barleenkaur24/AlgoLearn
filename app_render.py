@@ -14,7 +14,7 @@ import time
 
 BASE_DIR = Path(__file__).resolve().parent
 CHUNKS_FILE = BASE_DIR / "data" / "processed" / "chunks.jsonl"
-MODEL_NAME = "gemini-2.5-flash-lite"
+MODEL_NAME = "gemini-3.5-flash-lite"
 STOPWORDS = {
     "what", "why", "how", "when", "where", "which", "who",
     "the", "is", "are", "was", "were", "a", "an", "and",
