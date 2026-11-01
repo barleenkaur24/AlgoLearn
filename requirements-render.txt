@@ -1,2 +1,4 @@
 gradio
 google-genai
+fastapi
+uvicorn

@@ -4,6 +4,10 @@ import re
 from pathlib import Path
 
 import gradio as gr
+import uvicorn
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from google import genai
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -21,16 +25,10 @@ STOPWORDS = {
 
 def load_chunks():
     if not CHUNKS_FILE.exists():
-        raise FileNotFoundError(
-            f"Lecture chunks not found: {CHUNKS_FILE}"
-        )
+        raise FileNotFoundError(f"Lecture chunks not found: {CHUNKS_FILE}")
 
     with CHUNKS_FILE.open("r", encoding="utf-8") as file:
-        chunks = [
-            json.loads(line)
-            for line in file
-            if line.strip()
-        ]
+        chunks = [json.loads(line) for line in file if line.strip()]
 
     if not chunks:
         raise ValueError("The lecture chunk file is empty.")
@@ -54,9 +52,7 @@ def retrieve(question, top_k=4):
 
     for chunk in CHUNKS:
         text = chunk.get("text", "")
-        words = set(
-            re.findall(r"\b[a-zA-Z0-9]+\b", text.lower())
-        )
+        words = set(re.findall(r"\b[a-zA-Z0-9]+\b", text.lower()))
 
         if not words:
             continue
@@ -78,21 +74,15 @@ def answer_question(question):
         return "Please enter a DSA question."
 
     api_key = os.environ.get("GEMINI_API_KEY")
-
     if not api_key:
-        return (
-            "The hosted AI service is not configured yet. "
-            "Please configure GEMINI_API_KEY in the deployment "
-            "environment variables."
-        )
+        raise RuntimeError("GEMINI_API_KEY is missing from the deployment environment.")
 
     results = retrieve(question)
 
     if not results:
         return (
-            "I couldn't find a sufficiently relevant passage in "
-            "the indexed lecture. Try using terms from the "
-            "Quicksort lecture."
+            "I couldn't find a sufficiently relevant passage in the indexed lecture. "
+            "Try using terms from the Quicksort lecture."
         )
 
     context_parts = []
@@ -101,28 +91,22 @@ def answer_question(question):
         source = chunk.get("source", "MIT Lecture 6")
         page = chunk.get("page", "unknown")
         text = chunk.get("text", "")
-
-        context_parts.append(
-            f"[Source: {source}, page {page}]\n{text}"
-        )
+        context_parts.append(f"[Source: {source}, page {page}]\n{text}")
 
     context = "\n\n".join(context_parts)
 
     prompt = f"""
 You are AlgoLearn, a DSA tutor specializing in Quicksort.
 
-Answer the student's question using the lecture excerpts below.
+Answer the student's question using only the lecture excerpts below.
 
 Rules:
 - Ground factual claims in the supplied excerpts.
 - Do not invent claims or proofs that the excerpts do not establish.
 - Distinguish basic, median-based, randomized, and Paranoid Quicksort.
-- Cite relevant claims using [MIT Lecture 6, p. X] when the page
-  number is available.
-- If the excerpts do not establish a claim, state that clearly.
+- Cite relevant claims using [MIT Lecture 6, p. X] when available.
+- Clearly state when the excerpts do not establish a claim.
 - Explain concepts clearly for a university student.
-- Do not claim that the retrieved excerpts prove something they
-  merely mention.
 
 Use these sections:
 1. ANSWER
@@ -136,36 +120,60 @@ STUDENT QUESTION:
 {question}
 """
 
+    client = genai.Client(api_key=api_key)
+
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=prompt,
+        config={"temperature": 0.2, "max_output_tokens": 700},
+    )
+
+    generated_text = response.text
+
+    if not generated_text:
+        raise RuntimeError("Gemini returned an empty response.")
+
+    return generated_text
+
+
+# API for the Hugging Face frontend
+app = FastAPI(title="AlgoLearn API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class QuestionRequest(BaseModel):
+    question: str
+
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "chunks_loaded": len(CHUNKS)}
+
+
+@app.post("/api/answer")
+def api_answer(request: QuestionRequest):
     try:
-        client = genai.Client(api_key=api_key)
-
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=prompt,
-            config={
-                "temperature": 0.2,
-                "max_output_tokens": 700,
-            },
-        )
-
-        generated_text = response.text
-
-        if not generated_text:
-            return "The AI service returned an empty response. Please retry."
-
-        return generated_text
-
+        answer = answer_question(request.question)
+        return {"answer": answer}
     except Exception as error:
-        print(f"Generation error: {error}")
-        return (
-            "Sorry, the AI service couldn't generate an answer. "
-            "Please retry shortly. If the problem continues, "
-            "check the deployment logs and API configuration."
+        # Log the actual error in Render without exposing it to visitors.
+        print(f"API generation error: {type(error).__name__}: {error}", flush=True)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Answer generation failed ({type(error).__name__}). Check Render logs."
         )
 
 
+# Keep the existing Gradio interface available at /gradio
 demo = gr.Interface(
-    fn=answer_question,
+    fn=lambda question: answer_question(question),
     inputs=gr.Textbox(
         label="Ask AlgoLearn",
         placeholder="Explain randomized Quicksort...",
@@ -174,9 +182,8 @@ demo = gr.Interface(
     outputs=gr.Markdown(label="Answer"),
     title="AlgoLearn — Your DSA Tutor",
     description=(
-        "Ask questions about Quicksort. AlgoLearn retrieves "
-        "relevant passages from the MIT lecture and uses AI "
-        "to explain them with source references."
+        "Ask questions about Quicksort. Answers use retrieved passages "
+        "from MIT Lecture 6 and include source references."
     ),
     examples=[
         "How does randomized Quicksort work?",
@@ -185,7 +192,9 @@ demo = gr.Interface(
     ],
 )
 
+app = gr.mount_gradio_app(app, demo, path="/gradio")
+
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", "7860"))
-    demo.launch(server_name="0.0.0.0", server_port=port)
+    port = int(os.environ.get("PORT", "10000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
