@@ -121,7 +121,10 @@ Explain the concept clearly in 2–4 paragraphs. Include the algorithm's main st
 Explain the relevant points established by the retrieved lecture excerpts. Include the important details and cite the source pages.
 
 ## WHAT THE EXCERPTS DO NOT ESTABLISH
-Identify any relevant claims that cannot be confirmed from the supplied excerpts. Do not invent unsupported details.
+- Keep WHAT THE EXCERPTS DO NOT ESTABLISH to 1–2 concise sentences.
+- If the excerpts support the answer, state what specific details remain unestablished.
+- Never end mid-sentence. Finish all three sections.
+- Keep the entire answer concise, ideally under 350 words.
 
 LECTURE EXCERPTS:
 {context}
@@ -140,7 +143,7 @@ http_options=types.HttpOptions(timeout=60000),
         contents=prompt,
         config={
             "temperature": 0.2,
-            "max_output_tokens": 500,
+            "max_output_tokens": 700,
         },
     )
 
