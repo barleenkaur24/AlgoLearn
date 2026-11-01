@@ -108,9 +108,15 @@ Rules:
 - If asked about Randomized Quicksort, explain how the pivot is selected randomly and how that differs from Basic Quicksort.
 - Do not spend most of the answer describing Basic Quicksort unless the question asks for it.
 - If the retrieved lecture excerpts do not explain the requested variant, explicitly say so rather than substituting another variant.
-- Cite relevant claims using [MIT Lecture 6, p. X] when available.
+- Do not put page citations inside sentences in ANSWER.
+- In WHAT THE LECTURE STATES, place citations at the end of the relevant paragraph, not in the middle of sentences.
+- At the end of WHAT THE LECTURE STATES, add a final line: **Lecture pages:** [list the relevant page numbers].
+- Include only page numbers supported by the retrieved excerpts. Never guess page numbers.
 - Clearly state when the excerpts do not establish a claim.
 - Explain concepts clearly for a university student.
+- ANSWER should directly explain the concept and answer the student's question.
+- WHAT THE LECTURE STATES should add supporting evidence, technical details, guarantees, or complexity results without repeating the ANSWER.
+- Avoid explaining the same point in both sections unless the second section adds meaningful detail.
 
 Use exactly these three sections, with no numbering:
 
