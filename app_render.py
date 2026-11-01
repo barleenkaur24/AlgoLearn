@@ -121,11 +121,24 @@ STUDENT QUESTION:
 
     client = genai.Client(api_key=api_key)
 
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt,
-        config={"temperature": 0.2, "max_output_tokens": 700},
-    )
+    import time
+
+    response = None
+
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt,
+                config={"temperature": 0.2, "max_output_tokens": 700},
+            )
+            break
+        except Exception as error:
+            if attempt == 2 or not any(
+                code in str(error) for code in ("503", "UNAVAILABLE", "429")
+            ):
+                raise
+            time.sleep(2 * (attempt + 1))
 
     generated_text = response.text
 
