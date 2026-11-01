@@ -9,6 +9,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
+from google.genai import types
+import time
 
 BASE_DIR = Path(__file__).resolve().parent
 CHUNKS_FILE = BASE_DIR / "data" / "processed" / "chunks.jsonl"
@@ -125,25 +127,36 @@ STUDENT QUESTION:
 {question}
 """
 
-    client = genai.Client(api_key=api_key)
-
-    import time
+    client = genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(timeout=15000),
+    )
 
     response = None
 
-    for attempt in range(3):
+    for attempt in range(2):
         try:
             response = client.models.generate_content(
                 model=MODEL_NAME,
                 contents=prompt,
-                config={"temperature": 0.2, "max_output_tokens": 1200},            )
+                config={
+                    "temperature": 0.2,
+                    "max_output_tokens": 1000,
+                },
+            )
             break
+
         except Exception as error:
-            if attempt == 2 or not any(
-                code in str(error) for code in ("503", "UNAVAILABLE", "429")
+            error_text = str(error)
+
+            if attempt == 0 and any(
+                code in error_text
+                for code in ("503", "UNAVAILABLE", "429")
             ):
-                raise
-            time.sleep(2 * (attempt + 1))
+                time.sleep(1)
+                continue
+
+            raise
 
     generated_text = response.text
 
