@@ -107,10 +107,16 @@ Rules:
 - Clearly state when the excerpts do not establish a claim.
 - Explain concepts clearly for a university student.
 
-Use these sections:
-1. ANSWER
-2. WHAT THE LECTURE STATES
-3. WHAT THE EXCERPTS DO NOT ESTABLISH
+Use exactly these three sections, with no numbering:
+
+## ANSWER
+Explain the concept clearly in 2–4 paragraphs. Include the algorithm's main steps and a small example when the excerpts support one.
+
+## WHAT THE LECTURE STATES
+Explain the relevant points established by the retrieved lecture excerpts. Include the important details and cite the source pages.
+
+## WHAT THE EXCERPTS DO NOT ESTABLISH
+Identify any relevant claims that cannot be confirmed from the supplied excerpts. Do not invent unsupported details.
 
 LECTURE EXCERPTS:
 {context}
@@ -130,8 +136,7 @@ STUDENT QUESTION:
             response = client.models.generate_content(
                 model=MODEL_NAME,
                 contents=prompt,
-                config={"temperature": 0.2, "max_output_tokens": 700},
-            )
+                config={"temperature": 0.2, "max_output_tokens": 1200},            )
             break
         except Exception as error:
             if attempt == 2 or not any(
