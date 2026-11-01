@@ -104,7 +104,10 @@ Answer the student's question using only the lecture excerpts below.
 Rules:
 - Ground factual claims in the supplied excerpts.
 - Do not invent claims or proofs that the excerpts do not establish.
-- Distinguish basic, median-based, randomized, and Paranoid Quicksort.
+- Focus primarily on the exact Quicksort variant asked about.
+- If asked about Randomized Quicksort, explain how the pivot is selected randomly and how that differs from Basic Quicksort.
+- Do not spend most of the answer describing Basic Quicksort unless the question asks for it.
+- If the retrieved lecture excerpts do not explain the requested variant, explicitly say so rather than substituting another variant.
 - Cite relevant claims using [MIT Lecture 6, p. X] when available.
 - Clearly state when the excerpts do not establish a claim.
 - Explain concepts clearly for a university student.
